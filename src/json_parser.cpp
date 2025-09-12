@@ -3,59 +3,59 @@
 
 WeatherInfo parseWeatherData(const String& json) {
     WeatherInfo info;
-    DynamicJsonDocument doc(2048);
-    deserializeJson(doc, json);
+    DynamicJsonDocument doc(4096);
+
+    DeserializationError error = deserializeJson(doc, json);
+    if (error) {
+        // Zwracamy pustą strukturę
+        info.temp = 0;
+        info.humidity = 0;
+        info.description = "Błąd";
+        info.sunrise = 0;
+        info.sunset = 0;
+        return info;
+    }
 
     info.temp = doc["main"]["temp"] | 0.0;
     info.humidity = doc["main"]["humidity"] | 0;
     info.description = doc["weather"][0]["description"].as<String>();
     info.sunrise = doc["sys"]["sunrise"] | 0;
     info.sunset  = doc["sys"]["sunset"] | 0;
-    
 
     return info;
 }
 
-void parseForecast(const String& json) {
-    DynamicJsonDocument doc(16384);
-    DeserializationError error = deserializeJson(doc, json);
+size_t parseForecast(const String& json, ForecastDay forecast[], size_t maxDays) {
+    DynamicJsonDocument doc(32768);
 
+    DeserializationError error = deserializeJson(doc, json);
     if (error) {
-        Serial.print("Błąd deserializacji JSON: ");
-        Serial.println(error.c_str());
-        return;
+        return 0;
     }
 
     JsonArray daily = doc["daily"];
     if (daily.isNull()) {
-        Serial.println("Brak danych 'daily' w JSON!");
-        return;
+        return 0;
     }
 
-    for (size_t i = 0; i < daily.size() && i < 7; i++) {
+    size_t count = 0;
+    for (size_t i = 0; i < daily.size() && i < maxDays; i++) {
         JsonObject day = daily[i];
-        float tempDay = day["temp"]["day"] | 0.0;
-        float tempMin = day["temp"]["min"] | 0.0;
-        float tempMax = day["temp"]["max"] | 0.0;
-        int humidity  = day["humidity"] | 0;
-        String description = day["weather"][0]["description"].as<String>();
-
-        Serial.print("Dzień "); Serial.println(i + 1);
-        Serial.print("  Temp (dzień): "); Serial.println(tempDay);
-        Serial.print("  Min: "); Serial.println(tempMin);
-        Serial.print("  Max: "); Serial.println(tempMax);
-        Serial.print("  Wilgotność: "); Serial.println(humidity);
-        Serial.print("  Opis: "); Serial.println(description);
-        Serial.println("--------------------");
+        forecast[count].tempDay = day["temp"]["day"] | 0.0;
+        forecast[count].tempMin = day["temp"]["min"] | 0.0;
+        forecast[count].tempMax = day["temp"]["max"] | 0.0;
+        forecast[count].humidity = day["humidity"] | 0;
+        forecast[count].description = day["weather"][0]["description"].as<String>();
+        count++;
     }
+
+    return count;
 }
 
 String formatUnixTime(unsigned long timestamp) {
-
-    timestamp += 2 * 3600;  
-
+    timestamp += 2 * 3600;  // korekta dla strefy
     time_t rawTime = (time_t)timestamp;
-    struct tm *ti = gmtime(&rawTime); 
+    struct tm *ti = gmtime(&rawTime);
 
     char buffer[16];
     snprintf(buffer, sizeof(buffer), "%02d:%02d", ti->tm_hour, ti->tm_min);
