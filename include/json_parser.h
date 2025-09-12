@@ -8,7 +8,7 @@ struct WeatherInfo {
     int humidity;
     String description;
     unsigned long sunrise;
-    unsigned sunset;
+    unsigned long sunset;
 };
 
 struct ForecastDay {
@@ -20,7 +20,9 @@ struct ForecastDay {
 };
 
 WeatherInfo parseWeatherData(const String& json);
-void parseForecast(const String& json);
+
+size_t parseForecast(const String& json, ForecastDay forecast[], size_t maxDays);
+
 String formatUnixTime(unsigned long timestamp);
 
 #endif
