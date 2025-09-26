@@ -2,6 +2,7 @@
 #define JSON_PARSER_H
 
 #include <Arduino.h>
+#include <vector>
 
 struct WeatherInfo {
     float temp;
@@ -12,6 +13,7 @@ struct WeatherInfo {
 };
 
 struct ForecastDay {
+    String dayName;
     float tempDay;
     float tempMin;
     float tempMax;
@@ -21,7 +23,7 @@ struct ForecastDay {
 
 WeatherInfo parseWeatherData(const String& json);
 
-size_t parseForecast(const String& json, ForecastDay forecast[], size_t maxDays);
+std::vector<ForecastDay> parseForecast(const String& json);
 
 String formatUnixTime(unsigned long timestamp);
 
