@@ -3,6 +3,7 @@
 #include "api_client.h"
 #include "json_parser.h"
 #include "display.h"
+#include <vector>
 #include "C:\Users\IGOR\OneDrive\Dokumenty\PlatformIO\Projects\smart-weather-station\config\secrets.h"
 #include "C:\Users\IGOR\OneDrive\Dokumenty\PlatformIO\Projects\smart-weather-station\config\settings.h"
 
@@ -12,8 +13,7 @@ const unsigned long updateInterval = 600000; // co 10 minut odświeżanie danych
 const unsigned long dayInterval = 10000;     // co 10 sekund zmiana dnia prognozy
 
 WeatherInfo currentWeather;
-ForecastDay forecast[7];
-size_t forecastCount = 0;
+std::vector<ForecastDay> forecast;   // <-- zamiast tablicy + count
 size_t currentDay = 0;
 
 void setup() {
@@ -31,10 +31,10 @@ void setup() {
     showCurrentWeather(currentWeather);
 
     String forecastData = getWeatherForecast(API_KEY, LAT, LON);
-    forecastCount = parseForecast(forecastData, forecast, 7);
+    forecast = parseForecast(forecastData);   
 
     currentDay = 0;
-    if (forecastCount > 0) {
+    if (!forecast.empty()) {
         showDayForecast(forecast[currentDay], currentDay);
     }
 
@@ -55,7 +55,7 @@ void loop() {
         currentWeather = parseWeatherData(currentData);
 
         String forecastData = getWeatherForecast(API_KEY, LAT, LON);
-        forecastCount = parseForecast(forecastData, forecast, 7);
+        forecast = parseForecast(forecastData);  
 
         currentDay = 0;
         lastDayChange = now;
@@ -65,19 +65,15 @@ void loop() {
         digitalWrite(2, LOW);
     }
 
-    if (forecastCount > 0 && (now - lastDayChange >= dayInterval)) {
+    if (!forecast.empty() && (now - lastDayChange >= dayInterval)) {
         lastDayChange = now;
 
         if (currentDay == 0) {
-
             showCurrentWeather(currentWeather);
         } else {
-
             showDayForecast(forecast[currentDay - 1], currentDay - 1);
         }
 
-        currentDay = (currentDay + 1) % (forecastCount + 1);
+        currentDay = (currentDay + 1) % (forecast.size() + 1);  // <-- zamiast forecastCount
     }
 }
-
-
