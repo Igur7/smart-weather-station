@@ -7,7 +7,6 @@
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-// --- inicjalizacja ---
 void initDisplay() {
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH); 
@@ -137,8 +136,7 @@ void showDayForecast(const ForecastDay& day, size_t dayIndex) {
 
   tft.setTextSize(2);
   tft.setCursor(10, 8);
-  tft.print("Dzien ");
-  tft.println((int)dayIndex + 1);
+  tft.println(day.dayName);
 
   tft.setTextSize(4);
   tft.setCursor(10, 44);
@@ -152,7 +150,6 @@ void showDayForecast(const ForecastDay& day, size_t dayIndex) {
   tft.print("  Max: ");
   tft.print(int(day.tempMax), 1);
 
-  // wilgotnosc i opis
   tft.setCursor(10, 140);
   tft.print("Wilg: ");
   tft.print(day.humidity);
@@ -161,7 +158,6 @@ void showDayForecast(const ForecastDay& day, size_t dayIndex) {
   tft.setCursor(10, 168);
   tft.println(day.description);
 
-  // ikona po prawej
   String d = toLowerStr(day.description);
   if (d.indexOf("deszcz") >= 0 || d.indexOf("rain") >= 0) {
     drawRainIcon(170, 40, ST77XX_CYAN);
