@@ -1,5 +1,8 @@
 #ifndef SECRETS_H
 #define SECRETS_H
 
+#define WIFI_SSID ""
+#define WIFI_PASS ""
+#define API_KEY ""
 
 #endif
