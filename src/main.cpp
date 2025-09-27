@@ -4,76 +4,85 @@
 #include "json_parser.h"
 #include "display.h"
 #include <vector>
-#include "C:\Users\IGOR\OneDrive\Dokumenty\PlatformIO\Projects\smart-weather-station\config\secrets.h"
-#include "C:\Users\IGOR\OneDrive\Dokumenty\PlatformIO\Projects\smart-weather-station\config\settings.h"
+#include "secrets.h"
+#include "settings.h"
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+#define DHTPIN 22
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+float localTemp = 0.0;
 
 unsigned long lastUpdate = 0;
-unsigned long lastDayChange = 0;
-const unsigned long updateInterval = 600000; // co 10 minut odświeżanie danych z API
-const unsigned long dayInterval = 10000;     // co 10 sekund zmiana dnia prognozy
+unsigned long lastForecastChange = 0;
+
+const unsigned long updateInterval = 600000;   // co 10 min pobieranie z API
+const unsigned long forecastInterval = 5000;   // co 5 s zmiana dnia prognozy
 
 WeatherInfo currentWeather;
-std::vector<ForecastDay> forecast;   // <-- zamiast tablicy + count
+std::vector<ForecastDay> forecast;
 size_t currentDay = 0;
 
 void setup() {
     Serial.begin(115200);
-
     connectToWiFi(WIFI_SSID, WIFI_PASS);
-
+    pinMode(2, OUTPUT);
     initDisplay();
 
-    pinMode(2, OUTPUT);
+    dht.begin();
+    delay(1000);
 
-    Serial.println("📡 Pobieram dane pogodowe...");
+    Serial.println("Pobieram dane pogodowe...");
     String currentData = getWeatherData(API_KEY, CITY, COUNTRY);
     currentWeather = parseWeatherData(currentData);
-    showCurrentWeather(currentWeather);
+
+    localTemp = dht.readTemperature();
 
     String forecastData = getWeatherForecast(API_KEY, LAT, LON);
-    forecast = parseForecast(forecastData);   
+    forecast = parseForecast(forecastData);
 
-    currentDay = 0;
+    showCurrentWeather(currentWeather,localTemp); 
     if (!forecast.empty()) {
-        showDayForecast(forecast[currentDay], currentDay);
+        showForecastRow(forecast[currentDay]); 
     }
 
     lastUpdate = millis();
-    lastDayChange = millis();
+    lastForecastChange = millis();
 }
 
 void loop() {
     unsigned long now = millis();
 
+    static unsigned long lastSensorRead = 0;
+    if (now - lastSensorRead > 5000) {
+        lastSensorRead = now;
+        float t = dht.readTemperature();
+        if (!isnan(t)) {
+            localTemp = t;
+        }
+    }
+
     if (now - lastUpdate >= updateInterval) {
         lastUpdate = now;
-        digitalWrite(2, HIGH);
 
         Serial.println(" Aktualizacja danych...");
-
         String currentData = getWeatherData(API_KEY, CITY, COUNTRY);
         currentWeather = parseWeatherData(currentData);
 
         String forecastData = getWeatherForecast(API_KEY, LAT, LON);
-        forecast = parseForecast(forecastData);  
+        forecast = parseForecast(forecastData);
 
+        showCurrentWeather(currentWeather, localTemp);
         currentDay = 0;
-        lastDayChange = now;
-
-        showCurrentWeather(currentWeather);
-
-        digitalWrite(2, LOW);
+        showForecastRow(forecast[currentDay]);
     }
 
-    if (!forecast.empty() && (now - lastDayChange >= dayInterval)) {
-        lastDayChange = now;
-
-        if (currentDay == 0) {
-            showCurrentWeather(currentWeather);
-        } else {
-            showDayForecast(forecast[currentDay - 1], currentDay - 1);
-        }
-
-        currentDay = (currentDay + 1) % (forecast.size() + 1);  // <-- zamiast forecastCount
+    if (!forecast.empty() && (now - lastForecastChange >= forecastInterval)) {
+        lastForecastChange = now;
+        currentDay = (currentDay + 1) % forecast.size();
+        showForecastRow(forecast[currentDay]);
     }
 }
