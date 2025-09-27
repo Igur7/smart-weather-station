@@ -1,80 +1,88 @@
+#include <Arduino.h>
+#include "wifi_setup.h"
+#include "api_client.h"
 #include "json_parser.h"
-#include <ArduinoJson.h>
-#include <time.h>
+#include "display.h"
+#include <vector>
+#include "secrets.h"
+#include "settings.h"
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
 
-WeatherInfo parseWeatherData(const String& json) {
-    WeatherInfo info;
-    DynamicJsonDocument doc(4096);
+#define DHTPIN 22
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
 
-    DeserializationError error = deserializeJson(doc, json);
-    if (error) {
-        info.temp = 0;
-        info.humidity = 0;
-        info.description = "Błąd";
-        info.sunrise = 0;
-        info.sunset = 0;
-        return info;
+float localTemp = 0.0;
+
+unsigned long lastUpdate = 0;
+unsigned long lastForecastChange = 0;
+
+const unsigned long updateInterval = 600000;   // co 10 min pobieranie z API
+const unsigned long forecastInterval = 5000;   // co 5 s zmiana dnia prognozy
+
+WeatherInfo currentWeather;
+std::vector<ForecastDay> forecast;
+size_t currentDay = 0;
+
+void setup() {
+    Serial.begin(115200);
+    connectToWiFi(WIFI_SSID, WIFI_PASS);
+    pinMode(2, OUTPUT);
+    initDisplay();
+
+    dht.begin();
+    delay(1000);
+
+    Serial.println("Pobieram dane pogodowe...");
+    String currentData = getWeatherData(API_KEY, CITY, COUNTRY);
+    currentWeather = parseWeatherData(currentData);
+
+    localTemp = dht.readTemperature();
+
+    String forecastData = getWeatherForecast(API_KEY, LAT, LON);
+    forecast = parseForecast(forecastData);
+
+    showCurrentWeather(currentWeather,localTemp); 
+    if (!forecast.empty()) {
+        showForecastRow(forecast[currentDay]); 
     }
 
-    info.temp = doc["main"]["temp"] | 0.0;
-    info.humidity = doc["main"]["humidity"] | 0;
-    info.description = doc["weather"][0]["description"].as<String>();
-    info.sunrise = doc["sys"]["sunrise"] | 0;
-    info.sunset  = doc["sys"]["sunset"] | 0;
-
-    return info;
+    lastUpdate = millis();
+    lastForecastChange = millis();
 }
 
-String getWeekdayShort(time_t t) {
-    struct tm *ti = localtime(&t);
-    switch (ti->tm_wday) {
-        case 0: return "Nd";
-        case 1: return "Pn";
-        case 2: return "Wt";
-        case 3: return "Sr";
-        case 4: return "Czw";
-        case 5: return "Pt";
-        case 6: return "Sob";
-    }
-    return "";
-}
+void loop() {
+    unsigned long now = millis();
 
-std::vector<ForecastDay> parseForecast(const String& json) {
-    std::vector<ForecastDay> forecast;
-    DynamicJsonDocument doc(32768);
-
-    if (deserializeJson(doc, json)) {
-        return forecast; 
+    static unsigned long lastSensorRead = 0;
+    if (now - lastSensorRead > 5000) {
+        lastSensorRead = now;
+        float t = dht.readTemperature();
+        if (!isnan(t)) {
+            localTemp = t;
+        }
     }
 
-    JsonArray daily = doc["daily"];
-    if (daily.isNull()) return forecast;
+    if (now - lastUpdate >= updateInterval) {
+        lastUpdate = now;
 
-for (size_t i = 1; i < daily.size(); i++) {  
-    JsonObject day = daily[i];
-    ForecastDay f;
-    time_t dt = day["dt"] | 0;
-    f.dayName = getWeekdayShort(dt);
+        Serial.println(" Aktualizacja danych...");
+        String currentData = getWeatherData(API_KEY, CITY, COUNTRY);
+        currentWeather = parseWeatherData(currentData);
 
-    f.tempDay = day["temp"]["day"] | 0.0;
-    f.tempMin = day["temp"]["min"] | 0.0;
-    f.tempMax = day["temp"]["max"] | 0.0;
-    f.humidity = day["humidity"] | 0;
-    f.description = day["weather"][0]["description"].as<String>();
+        String forecastData = getWeatherForecast(API_KEY, LAT, LON);
+        forecast = parseForecast(forecastData);
 
-    forecast.push_back(f);
-}
+        showCurrentWeather(currentWeather, localTemp);
+        currentDay = 0;
+        showForecastRow(forecast[currentDay]);
+    }
 
-    return forecast;
-}
-
-String formatUnixTime(unsigned long timestamp) {
-    timestamp += 2 * 3600; 
-    time_t rawTime = (time_t)timestamp;
-    struct tm *ti = gmtime(&rawTime);
-
-    char buffer[16];
-    snprintf(buffer, sizeof(buffer), "%02d:%02d", ti->tm_hour, ti->tm_min);
-
-    return String(buffer);
+    if (!forecast.empty() && (now - lastForecastChange >= forecastInterval)) {
+        lastForecastChange = now;
+        currentDay = (currentDay + 1) % forecast.size();
+        showForecastRow(forecast[currentDay]);
+    }
 }
