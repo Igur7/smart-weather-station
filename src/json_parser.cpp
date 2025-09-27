@@ -8,7 +8,6 @@ WeatherInfo parseWeatherData(const String& json) {
 
     DeserializationError error = deserializeJson(doc, json);
     if (error) {
-        // Zwracamy pustą strukturę
         info.temp = 0;
         info.humidity = 0;
         info.description = "Błąd";
@@ -29,13 +28,13 @@ WeatherInfo parseWeatherData(const String& json) {
 String getWeekdayShort(time_t t) {
     struct tm *ti = localtime(&t);
     switch (ti->tm_wday) {
-        case 0: return "Niedzila";
-        case 1: return "Poniedzialek";
-        case 2: return "Wtorek";
-        case 3: return "Srod";
-        case 4: return "Czwartek";
-        case 5: return "Piatek";
-        case 6: return "Sobota";
+        case 0: return "Nd";
+        case 1: return "Pn";
+        case 2: return "Wt";
+        case 3: return "Sr";
+        case 4: return "Czw";
+        case 5: return "Pt";
+        case 6: return "Sob";
     }
     return "";
 }
@@ -45,7 +44,7 @@ std::vector<ForecastDay> parseForecast(const String& json) {
     DynamicJsonDocument doc(32768);
 
     if (deserializeJson(doc, json)) {
-        return forecast; // pusty wektor przy błędzie
+        return forecast; 
     }
 
     JsonArray daily = doc["daily"];
