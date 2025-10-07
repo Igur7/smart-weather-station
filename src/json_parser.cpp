@@ -1,61 +1,77 @@
 #include "json_parser.h"
 #include <ArduinoJson.h>
+#include <time.h>
 
 WeatherInfo parseWeatherData(const String& json) {
     WeatherInfo info;
-    DynamicJsonDocument doc(2048);
-    deserializeJson(doc, json);
+    DynamicJsonDocument doc(4096);
+
+    DeserializationError error = deserializeJson(doc, json);
+    if (error) {
+        info.temp = 0;
+        info.humidity = 0;
+        info.description = "Błąd";
+        info.sunrise = 0;
+        info.sunset = 0;
+        return info;
+    }
 
     info.temp = doc["main"]["temp"] | 0.0;
     info.humidity = doc["main"]["humidity"] | 0;
     info.description = doc["weather"][0]["description"].as<String>();
     info.sunrise = doc["sys"]["sunrise"] | 0;
     info.sunset  = doc["sys"]["sunset"] | 0;
-    
 
     return info;
 }
 
-void parseForecast(const String& json) {
-    DynamicJsonDocument doc(16384);
-    DeserializationError error = deserializeJson(doc, json);
+String getWeekdayShort(time_t t) {
+    struct tm *ti = localtime(&t);
+    switch (ti->tm_wday) {
+        case 0: return "Nd";
+        case 1: return "Pn";
+        case 2: return "Wt";
+        case 3: return "Sr";
+        case 4: return "Czw";
+        case 5: return "Pt";
+        case 6: return "Sob";
+    }
+    return "";
+}
 
-    if (error) {
-        Serial.print("Błąd deserializacji JSON: ");
-        Serial.println(error.c_str());
-        return;
+std::vector<ForecastDay> parseForecast(const String& json) {
+    std::vector<ForecastDay> forecast;
+    DynamicJsonDocument doc(32768);
+
+    if (deserializeJson(doc, json)) {
+        return forecast; 
     }
 
     JsonArray daily = doc["daily"];
-    if (daily.isNull()) {
-        Serial.println("Brak danych 'daily' w JSON!");
-        return;
-    }
+    if (daily.isNull()) return forecast;
 
-    for (size_t i = 0; i < daily.size() && i < 7; i++) {
-        JsonObject day = daily[i];
-        float tempDay = day["temp"]["day"] | 0.0;
-        float tempMin = day["temp"]["min"] | 0.0;
-        float tempMax = day["temp"]["max"] | 0.0;
-        int humidity  = day["humidity"] | 0;
-        String description = day["weather"][0]["description"].as<String>();
+for (size_t i = 1; i < daily.size(); i++) {  
+    JsonObject day = daily[i];
+    ForecastDay f;
+    time_t dt = day["dt"] | 0;
+    f.dayName = getWeekdayShort(dt);
 
-        Serial.print("Dzień "); Serial.println(i + 1);
-        Serial.print("  Temp (dzień): "); Serial.println(tempDay);
-        Serial.print("  Min: "); Serial.println(tempMin);
-        Serial.print("  Max: "); Serial.println(tempMax);
-        Serial.print("  Wilgotność: "); Serial.println(humidity);
-        Serial.print("  Opis: "); Serial.println(description);
-        Serial.println("--------------------");
-    }
+    f.tempDay = day["temp"]["day"] | 0.0;
+    f.tempMin = day["temp"]["min"] | 0.0;
+    f.tempMax = day["temp"]["max"] | 0.0;
+    f.humidity = day["humidity"] | 0;
+    f.description = day["weather"][0]["description"].as<String>();
+
+    forecast.push_back(f);
+}
+
+    return forecast;
 }
 
 String formatUnixTime(unsigned long timestamp) {
-
-    timestamp += 2 * 3600;  
-
+    timestamp += 2 * 3600; 
     time_t rawTime = (time_t)timestamp;
-    struct tm *ti = gmtime(&rawTime); 
+    struct tm *ti = gmtime(&rawTime);
 
     char buffer[16];
     snprintf(buffer, sizeof(buffer), "%02d:%02d", ti->tm_hour, ti->tm_min);

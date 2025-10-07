@@ -2,10 +2,9 @@
 #include <HTTPClient.h>
 #include "api_client.h"
 
-// Aktualna pogoda (endpoint: /weather)
 String getWeatherData(const char* apiKey, const char* city, const char* country) {
     if (WiFi.status() != WL_CONNECTED) {
-        return "{}";  // brak połączenia
+        return "{}"; 
     }
 
     HTTPClient http;
@@ -28,14 +27,13 @@ String getWeatherData(const char* apiKey, const char* city, const char* country)
     return payload;
 }
 
-// Prognoza pogody (endpoint: /onecall)
 String getWeatherForecast(const char* apiKey, float lat, float lon) {
     if (WiFi.status() != WL_CONNECTED) {
-        return "{}";  // brak połączenia
+        return "{}"; 
     }
 
     HTTPClient http;
-    String url = "https://api.openweathermap.org/data/3.0/onecall?lat=52.2298&lon=21.0118&exclude=minutely,alerts&units=metric&appid=" + String(apiKey);
+    String url = "https://api.openweathermap.org/data/3.0/onecall?lat=" + String(lat) + "&lon=" + String(lon) + "&exclude=minutely,alerts&units=metric&appid=" + String(apiKey);
 
     http.begin(url);
     int httpResponseCode = http.GET();
