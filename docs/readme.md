@@ -53,11 +53,12 @@ Contributions are welcome! Please submit issues or pull requests via GitHub.
 
 ##Photos
 
-![WhatsApp Image 2025-10-12 at 14 39 50](https://github.com/user-attachments/assets/3f149b02-001c-4376-8ada-0ab1cf3d5922)
+![WhatsApp Image 2025-10-12 at 14 39 50 (1)](https://github.com/user-attachments/assets/c1f66fe5-7f91-4cd6-bf7b-30c32cfcd8cd)
 
-![WhatsApp Image 2025-10-12 at 14 39 50](https://github.com/user-attachments/assets/a7aa0a4b-0abb-45c6-ad00-688cbb50388e)
+![WhatsApp Image 2025-10-12 at 14 39 50](https://github.com/user-attachments/assets/3f149b02-001c-4376-8ada-0ab1cf3d5922)
 
 ![WhatsApp Image 2025-10-12 at 14 43 43](https://github.com/user-attachments/assets/d567e9a6-0f01-4167-b12e-9d2f1f2ea561)
 
 ![WhatsApp Image 2025-10-12 at 14 43 43 (1)](https://github.com/user-attachments/assets/60a9af01-fb74-4f04-be49-d8ce0228871c)
+
 
