@@ -48,7 +48,6 @@ Once uploaded, the weather station will begin collecting and displaying sensor d
 This project is licensed under the MIT License.
 
 ## Contributing
-
 Contributions are welcome! Please submit issues or pull requests via GitHub.
 
 ##Photos
@@ -60,5 +59,6 @@ Contributions are welcome! Please submit issues or pull requests via GitHub.
 ![WhatsApp Image 2025-10-12 at 14 43 43](https://github.com/user-attachments/assets/d567e9a6-0f01-4167-b12e-9d2f1f2ea561)
 
 ![WhatsApp Image 2025-10-12 at 14 43 43 (1)](https://github.com/user-attachments/assets/60a9af01-fb74-4f04-be49-d8ce0228871c)
+
 
 
